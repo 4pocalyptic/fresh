@@ -1,4 +1,6 @@
 
+#include <linux/limits.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <readline/readline.h>
 #include <errno.h>
@@ -42,8 +44,42 @@ do_fork_wait (int argc, char *argv[])
    *  Manual-Seite `man 2 wait`.                                              *
    ****************************************************************************/
 
-  errno = ENOSYS;
-  return 1;
+   pid_t child, p;
+   int status;
+   child = fork();
+   if (child == (pid_t)-1) {
+     fprintf(stderr, "Cannot fork: %s.\n", strerror(errno));
+     return 1;
+   }
+
+  if(!child) {
+    errno = ENOENT;
+    execvp(argv[0], argv);
+    fprintf(stderr, "%s: %s.\n", program_name, strerror(errno));
+    exit(127);
+  }
+  do {
+    p = waitpid(child, &status, 0);
+  } while (p == (pid_t)-1 && errno == EINTR);
+  if (p == (pid_t)-1) {
+    fprintf(stderr, "Lost child process: %s.\n", strerror(errno));
+    return 127;
+  }
+  if (p != child) {
+    fprintf(stderr, "waitpid() library bug occurred.\n");
+    return 127;
+  }
+  if (WIFEXITED(status)) {
+    if (WEXITSTATUS(status))
+      fprintf(stderr, "Command failed with exit status %d.\n", WEXITSTATUS(status));
+    return WEXITSTATUS(status);
+  }
+  if (WIFSIGNALED(status)) {
+    fprintf(stderr, "Command died by signal %s.\n", strsignal(WTERMSIG(status)));
+    return 126;
+  }
+  fprintf(stderr, "Command died from unknown causes.\n");
+  return 125;
 }
 
 int
@@ -56,7 +92,13 @@ main (int argc, char *argv[])
   char **words = NULL;
   while (1)
     {
-      input = readline("$> ");
+      char shell_pre[PATH_MAX+32] = "";
+      char cwd[PATH_MAX];
+      if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        strcat(shell_pre, cwd);
+        strcat(shell_pre, "> ");
+      }
+      input = readline(shell_pre);
 
       if (input == NULL)
         {
