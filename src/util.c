@@ -29,9 +29,10 @@ debug (const char *format, ...)
   return res;
 }
 
-long unsigned int str_find(char *needle, char *haystack) {
-  long unsigned int start = -1;
+int str_find(char *needle, char *haystack, long unsigned int *needle_pos) {
+  long unsigned int start;
   int found = 0;
+  needle_pos = NULL;
   for(start = 0; start < (sizeof(haystack) - sizeof(needle) + 1); start++) {
     int inner_found = 1;
     for(long unsigned int pos = 0; pos < sizeof(needle); pos++) {
@@ -42,35 +43,30 @@ long unsigned int str_find(char *needle, char *haystack) {
     }
     if(inner_found) {
       found = 1;
+      *needle_pos = start;
       break;
     }
   }
-  if(!found) start = -1;
-  return start;
+  return found;
 }
 
 char *str_repl(char *needle, char *haystack, char *hay) {
-  long unsigned int needle_pos = str_find(needle, haystack);
-  if(needle_pos < 0) {
-    char *result = (char *) malloc(sizeof(char) * sizeof(haystack));
-    strcpy(result, haystack);
-    return result; 
+  long unsigned int needle_pos;
+  if(!str_find(needle, haystack, &needle_pos)) {
+    printf("DEBUG: No occurence found, copying string.\n");
+    return strdup(haystack);
   }
+  printf("DEBUG: needle_pos = %i\n", needle_pos);
   char *result = (char *) malloc(sizeof(char) * (sizeof(haystack) - sizeof(needle) + sizeof(hay)));
+  char *n = needle, *hs = haystack, *h = hay, *r = result;
   printf("DEBUG: %i\n", result);
-  long unsigned int pos = 0;
-  for(long unsigned int i = 0; i < needle_pos; i++) {
-    result[pos] = haystack[i];
-    pos++;
-  }
-  for(long unsigned int i = 0; i < sizeof(hay); i++) {
-    result[pos] = hay[i];
-    pos++;
-  }
-  for(long unsigned int i = sizeof(needle) + needle_pos; i < sizeof(haystack); i++) {
-    result[pos] = haystack[i];
-    pos++;
-  }
+  for(long unsigned int i = 0; i < needle_pos; i++)
+    *r++ = *hs++;
+  for(long unsigned int i = 0; i < sizeof(hay); i++)
+    *r++ = *h++;
+  while(*n++) *hs++;
+  for(long unsigned int i = 0; i < sizeof(haystack) - sizeof(needle) - needle_pos; i++)
+    *r++ = *hs++;
   printf("DEBUG: %s\n", result);
   printf("DEBUG: %i\n", result);
   return result;

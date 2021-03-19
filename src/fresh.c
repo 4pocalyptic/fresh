@@ -118,10 +118,10 @@ main (int argc, char *argv[])
       if (getcwd(cwd, sizeof(cwd)) != NULL) {
         if((home = getenv("HOME")) != NULL) {
 	  char *tmp;
-	  tmp = (char *) str_repl(home, cwd, "~");
+	  tmp = str_repl("~", cwd, "~");
 	  if(tmp != NULL) {
             printf("DEBUG: %i\n", tmp);
-            printf("DEBUG: %s\n", tmp);
+            printf("DEBUG: %s\n", *tmp);
 //            strcat(shell_pre, tmp);
 //            free(tmp);
           } else {
