@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <readline/readline.h>
 #include <errno.h>
+#include <x86_64-linux-gnu/bits/local_lim.h>
 
 #include "parser.h"
 #include "builtin.h"
@@ -44,31 +45,37 @@ do_fork_wait (int argc, char *argv[])
    *  Manual-Seite `man 2 wait`.                                              *
    ****************************************************************************/
 
-   pid_t child, p;
-   int status;
-   child = fork();
-   if (child == (pid_t)-1) {
-     fprintf(stderr, "Cannot fork: %s.\n", strerror(errno));
-     return 1;
-   }
+  // Try fork
+  pid_t child, p;
+  int status;
+  child = fork();
+  if (child == (pid_t)-1) {
+    fprintf(stderr, "Cannot fork: %s.\n", strerror(errno));
+    return 1;
+  }
 
+  // Child job
   if(!child) {
     errno = ENOENT;
     execvp(argv[0], argv);
     fprintf(stderr, "%s: %s.\n", program_name, strerror(errno));
-    exit(127);
+    exit(127); // always CNF ??
   }
+
+  // wait for child
   do {
     p = waitpid(child, &status, 0);
   } while (p == (pid_t)-1 && errno == EINTR);
   if (p == (pid_t)-1) {
     fprintf(stderr, "Lost child process: %s.\n", strerror(errno));
-    return 127;
+    return 127; // CNF ??
   }
   if (p != child) {
     fprintf(stderr, "waitpid() library bug occurred.\n");
-    return 127;
+    return 127; // CNF ??
   }
+
+  // check child status
   if (WIFEXITED(status)) {
     if (WEXITSTATUS(status))
       fprintf(stderr, "Command failed with exit status %d.\n", WEXITSTATUS(status));
@@ -76,7 +83,7 @@ do_fork_wait (int argc, char *argv[])
   }
   if (WIFSIGNALED(status)) {
     fprintf(stderr, "Command died by signal %s.\n", strsignal(WTERMSIG(status)));
-    return 126;
+    return 126; // Command invoked cannot execute
   }
   fprintf(stderr, "Command died from unknown causes.\n");
   return 125;
@@ -92,10 +99,38 @@ main (int argc, char *argv[])
   char **words = NULL;
   while (1)
     {
-      char shell_pre[PATH_MAX+32] = "";
+      char shell_pre[PATH_MAX+32+HOST_NAME_MAX] = "";
+      char *uid, *home;
+      char hostname[HOST_NAME_MAX];
+      int hngetreturn = gethostname(hostname, HOST_NAME_MAX);
+      if((uid = getenv("USER")) != NULL) {
+        strcat(shell_pre, uid);
+        if(hngetreturn == 0) {
+          strcat(shell_pre, "@");
+          strcat(shell_pre, hostname);
+        }
+        strcat(shell_pre, ":");
+      } else {
+        strcat(shell_pre, hostname);
+        strcat(shell_pre, ":");
+      }
       char cwd[PATH_MAX];
       if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        strcat(shell_pre, cwd);
+        if((home = getenv("HOME")) != NULL) {
+	  char *tmp;
+	  tmp = (char *) str_repl(home, cwd, "~");
+	  if(tmp != NULL) {
+            printf("DEBUG: %i\n", tmp);
+            printf("DEBUG: %s\n", tmp);
+//            strcat(shell_pre, tmp);
+//            free(tmp);
+          } else {
+            printf("DEBUG: %s\n", cwd);
+//            strcat(shell_pre, cwd);
+          }
+        } else {
+          strcat(shell_pre, cwd);
+        }
         strcat(shell_pre, "> ");
       }
       input = readline(shell_pre);

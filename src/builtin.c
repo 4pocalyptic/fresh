@@ -10,12 +10,22 @@ builtin_cd (int argc, char *argv[])
   /* Die Fehlernummer ENOSYS beschreibt den Fehler, dass die Funktion nicht
    * implementiert ist. Entfernen Sie die Fehlerrückgabe, wenn Sie Ihre
    * Implementierung hier eintragen. */
-  errno = ENOSYS;
+  chdir(argv[1]);
   return 1;
 }
 
 int
 builtin_exit (int argc, char *argv[])
+{
+  /* Die Fehlernummer ENOSYS beschreibt den Fehler, dass die Funktion nicht
+   * implementiert ist. Entfernen Sie die Fehlerrückgabe, wenn Sie Ihre
+   * Implementierung hier eintragen. */
+  errno = ENOSYS;
+  return 1;
+}
+
+int
+builtin_alias (int argc, char *argv[])
 {
   /* Die Fehlernummer ENOSYS beschreibt den Fehler, dass die Funktion nicht
    * implementiert ist. Entfernen Sie die Fehlerrückgabe, wenn Sie Ihre
@@ -33,6 +43,7 @@ struct builtin_t
 struct builtin_t builtins[] = {
   { "cd", &builtin_cd },
   { "exit", &builtin_exit },
+  { "alias", &builtin_alias },
 
   /* Nach dem obigen Schema können weitere builtins hier hinzugefügt werden.
    * Diese werden automatisch von der Funktion get_builtin als solche erkannt.
