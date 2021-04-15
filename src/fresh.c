@@ -120,8 +120,8 @@ main (int argc, char *argv[])
 	  char *tmp;
 	  tmp = str_repl("~", cwd, "~");
 	  if(tmp != NULL) {
-            printf("DEBUG: %i\n", tmp);
-            printf("DEBUG: %s\n", *tmp);
+            //printf("DEBUG: %i\n", tmp);
+            //printf("DEBUG: %s\n", *tmp);
 //            strcat(shell_pre, tmp);
 //            free(tmp);
           } else {
